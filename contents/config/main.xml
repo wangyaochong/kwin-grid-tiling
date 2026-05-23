@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name="" />
+  <group name="">
+    <entry name="tile" type="Bool">
+      <label>default state of tiling</label>
+      <default>true</default>
+    </entry>
+    <entry name="gapShow" type="Bool">
+      <label>default state of show gaps between windows</label>
+      <default>true</default>
+    </entry>
+    <entry name="border" type="Bool">
+      <label>default state of borders</label>
+      <default>false</default>
+    </entry>
+    <entry name="borderActive" type="Bool">
+      <label>keep border around the active window</label>
+      <default>false</default>
+    </entry>
+    <entry name="force" type="Bool">
+      <label>force geometry of windows</label>
+      <default>false</default>
+    </entry>
+    <entry name="gapValue" type="Int">
+      <label>gap size between windows in px</label>
+      <default>16</default>
+    </entry>
+    <entry name="dividerBound" type="Double">
+      <label>divider from this value to 1-value</label>
+      <default>0.4</default>
+    </entry>
+    <entry name="dividerStep" type="Double">
+      <label>increment and decrement size of the divider</label>
+      <default>0.05</default>
+    </entry>
+    <entry name="delay" type="Int">
+      <label>delay before adding new windows</label>
+      <default>10</default>
+    </entry>
+    <entry name="marginT" type="Int">
+      <label>amount of space at the top in px</label>
+      <default>0</default>
+    </entry>
+    <entry name="marginB" type="Int">
+      <label>amount of space at the bottom in px</label>
+      <default>0</default>
+    </entry>
+    <entry name="marginL" type="Int">
+      <label>amount of space at the left in px</label>
+      <default>0</default>
+    </entry>
+    <entry name="marginR" type="Int">
+      <label>amount of space at the right in px</label>
+      <default>0</default>
+    </entry>
+    <entry name="whitelist" type="String">
+      <label>Comma-separated regex patterns of window names to tile. Empty = no tiling.</label>
+      <default>konsole|dolphin</default>
+    </entry>
+    <entry name="rows" type="Int">
+      <label>Grid rows</label>
+      <default>2</default>
+    </entry>
+    <entry name="columns" type="Int">
+      <label>Grid columns</label>
+      <default>4</default>
+    </entry>
+    <entry name="monitorInfo" type="String">
+      <label>Largest monitor info</label>
+      <default></default>
+    </entry>
+  </group>
+</kcfg>

@@ -11,20 +11,11 @@ export function Desktop() {
 
   function add(window, desktopId) {
     const name = window.output.name;
+    if (!isOutputEnabled(name)) return;
     if (!outputs.hasOwnProperty(name)) outputs[name] = Output();
     if (outputs[name].add(window, grid())) {
       window.outputName = name;
       return window;
-    } else {
-      for (const o of shared.workspace.screens) {
-        const n = o.name;
-        if (!outputs.hasOwnProperty(n)) outputs[n] = Output();
-        if (outputs[n].add(window, grid())) {
-          window.outputName = n;
-          shared.workspace.sendClientToScreen(window, o);
-          return window;
-        }
-      }
     }
   }
 
@@ -51,6 +42,12 @@ export function Desktop() {
       while (i !== c) {
         const output = shared.workspace.screens[i];
         const n = output.name;
+        if (!isOutputEnabled(n)) {
+          i += direction;
+          if (i < 0) i = max - 1;
+          if (i >= max) i = 0;
+          continue;
+        }
         if (!outputs.hasOwnProperty(n)) outputs[n] = Output();
         const w = Object.assign({}, window);
         if (outputs[n].add(window, grid())) {

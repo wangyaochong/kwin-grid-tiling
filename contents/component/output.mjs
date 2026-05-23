@@ -1,4 +1,4 @@
-import { calc, clampDivider, config } from 'config.mjs';
+import { calc, clampDivider, config, grid } from 'config.mjs';
 import { shared } from 'shared.mjs';
 import { List } from 'list.mjs';
 
@@ -35,6 +35,39 @@ export function Output() {
       if (dividers.length > 0) dividers.shift();
     } else {
       dividers.splice(index - 1, 1);
+    }
+  }
+
+  function optimize() {
+    const g = grid();
+    const totalWindows = count();
+    if (totalWindows <= 1) return;
+    if (lists.length >= g[1]) return;
+    const hasVerticalSplit = lists.some(l => l.windows.length > 1);
+    if (!hasVerticalSplit) return;
+
+    const allWindows = [];
+    for (const list of lists) {
+      for (const w of list.windows) allWindows.push(w);
+    }
+
+    lists.length = 0;
+    dividers.length = 0;
+
+    const numCols = Math.min(totalWindows, g[1]);
+    const base = Math.floor(totalWindows / numCols);
+    const extra = totalWindows % numCols;
+
+    let idx = 0;
+    for (let col = 0; col < numCols; col++) {
+      lists.push(List());
+      if (col > 0) dividers.push(0);
+      const n = base + (col < extra ? 1 : 0);
+      for (let row = 0; row < n; row++) {
+        const w = allWindows[idx++];
+        lists[col].add(w);
+        w.listIndex = col;
+      }
     }
   }
 
@@ -188,6 +221,7 @@ export function Output() {
   }
 
   function render(area) {
+    optimize();
     const width = calc.width(area.width, lists.length - minimized());
     let x = calc.x(area.x);
     let current = 0;

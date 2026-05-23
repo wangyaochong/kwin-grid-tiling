@@ -38,7 +38,7 @@
     </entry>
     <entry name="delay" type="Int">
       <label>delay before adding new windows</label>
-      <default>10</default>
+      <default>200</default>
     </entry>
     <entry name="marginT" type="Int">
       <label>amount of space at the top in px</label>

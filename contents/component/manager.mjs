@@ -164,6 +164,10 @@ function addSignals(window) {
   connect(window, 'outputChanged', () => {
     setTimeout(() => {
       if (!window.deleted) {
+        if (!isOutputEnabled(window.output.name)) {
+          unTile(window);
+          return;
+        }
         const desktop = getDesktop(window);
         if (desktop) {
           desktop.moved(window);

@@ -21,4 +21,4 @@ if [ -n "$INFO_TEXT" ]; then
 fi
 
 kpackagetool6 --type=KWin/Script --upgrade "$SCRIPT_DIR" 2>/dev/null
-dbus-send --session --dest=org.kde.KWin /KWin org.kde.KWin.reconfigure 2>/dev/null
+qdbus6 org.kde.KWin /Scripting org.kde.kwin.Scripting.reloadScripts 2>/dev/null

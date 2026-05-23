@@ -35,6 +35,7 @@ function addProps(window) {
 
 function tile(window) {
   if (!tiled.hasOwnProperty(window.internalId) && layout.add(window)) {
+    unwatchFloatingOutput(window);
     tiled[window.internalId] = addSignals(window);
     if (floating.hasOwnProperty(window.internalId)) delete floating[window.internalId];
     return window;
@@ -43,6 +44,26 @@ function tile(window) {
 
 function unTile(window) {
   if (tiled.hasOwnProperty(window.internalId)) {
+    // Restore opacity before disconnecting signals, since the moveResizedChanged
+    // handler won't fire after disconnect (fixes windows stuck semi-transparent
+    // when moved to a non-tiled output during drag).
+    if (window.hasOwnProperty('savedOpacity')) {
+      window.opacity = window.savedOpacity;
+      delete window.savedOpacity;
+    }
+    // Clean up drag highlight state
+    if (window._highlightTarget && !window._highlightTarget.deleted) {
+      if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
+        window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
+        delete window._highlightTarget.savedHighlightOpacity;
+      }
+      delete window._highlightTarget;
+    }
+    if (window._dragHighlightHandler) {
+      window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
+      delete window._dragHighlightHandler;
+    }
+
     if (window.hasOwnProperty('init')) {
       for (const [prop, value] of Object.entries(window.init)) window[prop] = value;
     }
@@ -53,7 +74,37 @@ function unTile(window) {
     }
     delete tiled[disconnect(window).internalId];
     floating[window.internalId] = window;
+    // Watch for the window returning to a tiled output so it can be re-tiled
+    watchFloatingOutput(window);
     return window;
+  }
+}
+
+// Attach an outputChanged listener to a floating (untiled) window so that
+// when it is moved back to the largest output it gets re-tiled automatically.
+function watchFloatingOutput(window) {
+  if (window.deleted) return;
+  const handler = () => {
+    setTimeout(() => {
+      if (window.deleted) return;
+      if (!isOutputEnabled(window.output.name)) return;
+      if (tiled.hasOwnProperty(window.internalId)) return;
+      if (!floating.hasOwnProperty(window.internalId)) return;
+      addProps(window);
+      if (config.tile && tile(window)) {
+        layout.render();
+        shared.workspace.currentDesktop = window.desktops[0];
+      }
+    }, config.delay);
+  };
+  window._floatingOutputHandler = handler;
+  window.outputChanged.connect(handler);
+}
+
+function unwatchFloatingOutput(window) {
+  if (window._floatingOutputHandler) {
+    window.outputChanged.disconnect(window._floatingOutputHandler);
+    delete window._floatingOutputHandler;
   }
 }
 
@@ -67,11 +118,32 @@ function addSignals(window) {
 
   connect(window, 'moveResizedChanged', () => {
     if (window.move) {
+      // Only apply drag effects on the largest (tiled) output
+      if (!isOutputEnabled(window.output.name)) return;
       window.savedOpacity = window.opacity;
       window.opacity = 0.5;
       window._highlightTarget = null;
       const onDragMove = () => {
         if (!window.move) return;
+        // Stop drag effects if window left the tiled output
+        if (!isOutputEnabled(window.output.name)) {
+          if (window.hasOwnProperty('savedOpacity')) {
+            window.opacity = window.savedOpacity;
+            delete window.savedOpacity;
+          }
+          if (window._highlightTarget && !window._highlightTarget.deleted) {
+            if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
+              window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
+              delete window._highlightTarget.savedHighlightOpacity;
+            }
+            delete window._highlightTarget;
+          }
+          if (window._dragHighlightHandler) {
+            window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
+            delete window._dragHighlightHandler;
+          }
+          return;
+        }
         const output = getOutput(window);
         if (!output) return;
         const target = output.findWindowAtCursor(window);
@@ -111,6 +183,9 @@ function addSignals(window) {
       window.opacity = window.savedOpacity;
       delete window.savedOpacity;
     }
+
+    // Skip layout operations if window is no longer on a tiled output
+    if (!isOutputEnabled(window.output.name)) return;
 
     const output = getOutput(window);
     const a = area(window.desktops[0], window.output);
@@ -201,19 +276,7 @@ export function add(window) {
 
         if (!isOutputEnabled(window.output.name)) {
           floating[window.internalId] = window;
-          connect(window, 'outputChanged', () => {
-            setTimeout(() => {
-              if (!window.deleted && isOutputEnabled(window.output.name)) {
-                if (floating.hasOwnProperty(window.internalId)) delete floating[window.internalId];
-                if (tiled.hasOwnProperty(window.internalId)) return;
-                addProps(window);
-                if (config.tile && tile(window)) {
-                  layout.render();
-                  shared.workspace.currentDesktop = window.desktops[0];
-                }
-              }
-            }, config.delay);
-          });
+          watchFloatingOutput(window);
           return;
         }
 
@@ -239,6 +302,7 @@ export function remove(window) {
         layout.render();
       }
     } else if (floating.hasOwnProperty(window.internalId)) {
+      unwatchFloatingOutput(window);
       delete floating[window.internalId];
     }
   }

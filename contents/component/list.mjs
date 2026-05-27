@@ -11,7 +11,7 @@ export function List() {
   function add(window) {
     window.windowIndex = windows.length;
     windows.push(window);
-    if (windows.length > 0) dividers.push(0); // do not add a new divider when the first window is added to the column
+    if (windows.length > 1) dividers.push(0); // do not add a new divider when the first window is added to the column
   }
 
   function remove(window) {
@@ -87,5 +87,5 @@ export function List() {
     }
   }
 
-  return { windows, minimized, add, remove, swap, divider, dividerPre, dividerPost, render };
+  return { windows, dividers, minimized, add, remove, swap, divider, dividerPre, dividerPost, render };
 }

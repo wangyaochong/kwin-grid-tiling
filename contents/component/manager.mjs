@@ -284,8 +284,9 @@ export function add(window) {
         if (config.tile && tile(window)) {
           layout.render();
           shared.workspace.currentDesktop = window.desktops[0];
+        } else {
+          floating[window.internalId] = window;
         }
-        floating[window.internalId] = window;
       } catch (e) {
         console.warn('Grid Tiling: add error:', e);
       }

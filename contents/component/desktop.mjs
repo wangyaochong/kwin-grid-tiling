@@ -49,9 +49,14 @@ export function Desktop() {
           continue;
         }
         if (!outputs.hasOwnProperty(n)) outputs[n] = Output();
-        const w = Object.assign({}, window);
+        const savedOutputName = window.outputName;
+        const savedListIndex = window.listIndex;
+        const savedWindowIndex = window.windowIndex;
         if (outputs[n].add(window, grid())) {
-          remove(w);
+          window.outputName = savedOutputName;
+          window.listIndex = savedListIndex;
+          window.windowIndex = savedWindowIndex;
+          remove(window);
           window.outputName = n;
           shared.workspace.sendClientToScreen(window, output);
           return window;

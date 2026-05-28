@@ -27,3 +27,8 @@ export function createTimerComponent() {
     },
   };
 }
+
+export function createKWinReadConfig() {
+  return (key, defaultValue) => defaultValue;
+}
+

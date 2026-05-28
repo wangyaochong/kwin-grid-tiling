@@ -1,7 +1,7 @@
 import { area, shared } from 'shared.mjs';
 import { init, destroy } from 'main.mjs';
 import { config, grid, setGap } from 'config.mjs';
-import { getOutput, render, start, toggle as tileFloat } from 'manager.mjs';
+import { getOutput, render, start, toggle as tileFloat, isTiled } from 'manager.mjs';
 
 export { tileFloat };
 export const refresh = start;
@@ -24,7 +24,9 @@ export const toggle = {
     if (output) {
       const minimize = output.lists.reduce((s, l) => s + l.minimized(), 0) === 0;
       for (const list of output.lists) {
-        for (const window of list.windows) window.minimized = minimize;
+        for (const window of list.windows) {
+          if (isTiled(window)) window.minimized = minimize;
+        }
       }
     }
   },
@@ -39,6 +41,7 @@ for (const [key, direction, size] of [
 ]) {
   resize[key] = () => {
     const window = shared.workspace.activeWindow;
+    if (!isTiled(window)) return;
     const output = getOutput(window);
     if (output) {
       const amount = direction * config.divider[size];
@@ -56,6 +59,7 @@ for (const [key, amount] of [
 ]) {
   move[key] = () => {
     const window = shared.workspace.activeWindow;
+    if (!isTiled(window)) return;
     const output = getOutput(window);
     if (output && output.lists[window.listIndex].swap(window.windowIndex, amount))
       output.render(area(window.desktops[0], window.output));
@@ -67,6 +71,7 @@ for (const [key, amount] of [
 ]) {
   move[key] = () => {
     const window = shared.workspace.activeWindow;
+    if (!isTiled(window)) return;
     const output = getOutput(window);
     if (
       output &&

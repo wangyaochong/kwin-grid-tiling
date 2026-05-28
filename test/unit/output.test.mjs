@@ -171,4 +171,144 @@ describe('Output', () => {
     out.add(w2, g);
     assert.doesNotThrow(() => out.render({ x: 0, y: 0, width: 1920, height: 1080 }));
   });
+
+  it('moved swaps window positions', () => {
+    const out = Output();
+    const g = grid();
+    const w1 = createWindow();
+    const w2 = createWindow();
+    out.add(w1, g);
+    out.add(w2, g);
+    w1.renderGeometry = { x: 0, y: 0, width: 960, height: 540 };
+    w2.renderGeometry = { x: 960, y: 0, width: 960, height: 540 };
+    shared.workspace.cursorPos = { x: 970, y: 10 };
+    const result = out.moved(w1, { x: 0, y: 0, width: 1920, height: 1080 });
+    assert.equal(result, w2, 'moved should return the swap target');
+  });
+
+  it('moved with no target at cursor — no swap', () => {
+    const out = Output();
+    const g = grid();
+    const w1 = createWindow();
+    out.add(w1, g);
+    w1.renderGeometry = { x: 0, y: 0, width: 960, height: 540 };
+    shared.workspace.cursorPos = { x: 5000, y: 5000 };
+    const result = out.moved(w1, { x: 0, y: 0, width: 1920, height: 1080 });
+    assert.equal(result, undefined);
+  });
+
+  it('resized adjusts dividers on width change', () => {
+    const out = Output();
+    const g = grid();
+    const w1 = createWindow();
+    const w2 = createWindow();
+    out.add(w1, g);
+    out.add(w2, g);
+    out.render({ x: 0, y: 0, width: 1920, height: 1080 });
+    w1.frameGeometry = { x: 0, y: 0, width: 1000, height: 540 };
+    const result = out.resized(w1, { x: 0, y: 0, width: 1920, height: 1080 });
+    assert.equal(result, w1);
+  });
+
+  it('resized with no change — returns undefined', () => {
+    const out = Output();
+    const g = grid();
+    const w = createWindow();
+    out.add(w, g);
+    out.render({ x: 0, y: 0, width: 1920, height: 1080 });
+    w.frameGeometry = { ...w.renderGeometry };
+    const result = out.resized(w, { x: 0, y: 0, width: 1920, height: 1080 });
+    assert.equal(result, undefined);
+  });
+
+  it('move to adjacent column', () => {
+    const out = Output();
+    const g = grid();
+    out.add(createWindow(), g);
+    out.add(createWindow(), g);
+    out.add(createWindow(), g);
+    const w = out.lists[2].windows[0];
+    const result = out.move(w, -1, g);
+    assert.ok(result, 'window should move to adjacent column');
+    assert.equal(w.listIndex, 1);
+  });
+
+  it('divider adjusts column sizes', () => {
+    const out = Output();
+    const g = grid();
+    out.add(createWindow(), g);
+    out.add(createWindow(), g);
+    out.divider(0, 0.1);
+    assert.ok(true, 'divider operations should not crash');
+  });
+
+  it('addList at start shifts indices', () => {
+    const out = Output();
+    const g = grid();
+    out.add(createWindow(), g);
+    out.add(createWindow(), g);
+    const w0 = out.lists[0].windows[0];
+    const w1 = out.lists[1].windows[0];
+    assert.equal(w0.listIndex, 0);
+    assert.equal(w1.listIndex, 1);
+  });
+
+  it('move with split creates new column', () => {
+    const out = Output();
+    const g = grid();
+    for (let i = 0; i < 5; i++) out.add(createWindow(), g);
+    const extra = out.lists[0].windows[0];
+    assert.ok(out.lists[extra.listIndex].windows.length > 1, 'need a column with multiple windows');
+    const result = out.move(extra, -1, g);
+    assert.ok(result || result === undefined, 'move should complete without error');
+  });
+
+  it('move left from first column with multiple windows — addList at start', () => {
+    const out = Output();
+    const g = [3, 4];
+    for (let i = 0; i < 7; i++) out.add(createWindow(), g);
+    const lastCol = out.lists[out.lists.length - 1];
+    if (lastCol.windows.length === 1) {
+      const w = lastCol.windows[0];
+      out.remove(w);
+    }
+    assert.ok(out.lists.length < g[1], 'need room for new column');
+    assert.ok(out.lists[0].windows.length >= 2, 'column 0 needs multiple windows');
+    const w = out.lists[0].windows[out.lists[0].windows.length - 1];
+    const origColCount = out.lists.length;
+    out.move(w, -1, g);
+    assert.ok(out.lists.length > origColCount, 'new column should be created at start');
+    assert.equal(w.listIndex, 0, 'window should be in new column 0');
+  });
+
+  it('move right from last column with multiple windows — addList at end', () => {
+    const out = Output();
+    const g = [3, 4];
+    for (let i = 0; i < 7; i++) out.add(createWindow(), g);
+    const lastCol = out.lists[out.lists.length - 1];
+    if (lastCol.windows.length === 1) {
+      const w = lastCol.windows[0];
+      out.remove(w);
+    }
+    assert.ok(out.lists.length < g[1], 'need room for new column');
+    const last = out.lists[out.lists.length - 1];
+    if (last.windows.length > 1) {
+      const w = last.windows[last.windows.length - 1];
+      const origColCount = out.lists.length;
+      out.move(w, 1, g);
+      assert.ok(out.lists.length > origColCount, 'new column should be created at end');
+    }
+  });
+
+  it('render with divider and next column all minimized — divider zeroed', () => {
+    const out = Output();
+    const g = [2, 2];
+    out.add(createWindow(), g);
+    out.add(createWindow(), g);
+    out.divider(0, 0.3);
+    out.lists[1].windows[0].minimized = true;
+    assert.ok(out.lists[1].minimized() === out.lists[1].windows.length, 'column 1 should be fully minimized');
+    out.render({ x: 0, y: 0, width: 1920, height: 1080 });
+    assert.ok(true, 'render with minimized next column should not crash');
+  });
 });

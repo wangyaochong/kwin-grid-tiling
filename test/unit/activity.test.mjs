@@ -127,4 +127,76 @@ describe('Activity', () => {
     assert.ok(result, 'should fall back to desk-1');
     assert.equal(extra.desktopId, 'desk-1');
   });
+
+  it('moved across desktops — window relocated', () => {
+    shared.workspace.desktops = [
+      { id: 'desk-0' },
+      { id: 'desk-1' },
+    ];
+    const activity = Activity();
+    const w = createWindow({ desktops: [{ id: 'desk-0' }] });
+    activity.add(w);
+    assert.equal(w.desktopId, 'desk-0');
+    w.desktops = [{ id: 'desk-1' }];
+    const result = activity.moved(w);
+    assert.equal(result, w);
+    assert.equal(w.desktopId, 'desk-1');
+  });
+
+  it('moved with no direction — unchanged', () => {
+    const activity = Activity();
+    const w = createWindow();
+    activity.add(w);
+    const result = activity.moved(w);
+    assert.equal(result, w);
+    assert.equal(w.desktopId, 'desk-0');
+  });
+
+  it('moved when target desktop has space — creates new desktop entry', () => {
+    shared.workspace.desktops = [
+      { id: 'desk-0' },
+      { id: 'desk-1' },
+    ];
+    const activity = Activity();
+    const w = createWindow({ desktops: [{ id: 'desk-0' }] });
+    activity.add(w);
+    assert.ok(activity.desktops['desk-0']);
+    w.desktops = [{ id: 'desk-1' }];
+    activity.moved(w);
+    assert.ok(activity.desktops['desk-1'], 'should create desk-1 entry');
+  });
+
+  it('moved wraps around desktop list', () => {
+    shared.workspace.desktops = [
+      { id: 'desk-0' },
+      { id: 'desk-1' },
+      { id: 'desk-2' },
+    ];
+    const activity = Activity();
+    const w = createWindow({ desktops: [{ id: 'desk-2' }] });
+    activity.add(w);
+    assert.equal(w.desktopId, 'desk-2');
+    w.desktops = [{ id: 'desk-0' }];
+    const result = activity.moved(w);
+    assert.equal(result, w);
+  });
+
+  it('moved to full desktop — loops back without relocation', () => {
+    shared.workspace.desktops = [
+      { id: 'desk-0' },
+      { id: 'desk-1' },
+    ];
+    const activity = Activity();
+    const g = grid();
+    for (let col = 0; col < g[1]; col++) {
+      for (let row = 0; row < g[0]; row++) {
+        activity.add(createWindow({ desktops: [{ id: 'desk-1' }] }));
+      }
+    }
+    const w = createWindow();
+    activity.add(w);
+    w.desktops = [{ id: 'desk-1' }];
+    const result = activity.moved(w);
+    assert.equal(result, w);
+  });
 });

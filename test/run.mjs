@@ -11,6 +11,7 @@ const testFiles = [
   './unit/layout.test.mjs',
   './unit/manager.test.mjs',
   './integration/workflow.test.mjs',
+  './e2e/lifecycle.test.mjs',
 ];
 
 for (const file of testFiles) {

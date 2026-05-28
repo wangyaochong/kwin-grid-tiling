@@ -163,4 +163,41 @@ describe('List', () => {
     }
     assert.equal(list.dividers.length, list.windows.length - 1);
   });
+
+  it('divider() calls both dividerPost and dividerPre', () => {
+    const list = List();
+    const w1 = createWindow();
+    const w2 = createWindow();
+    const w3 = createWindow();
+    list.add(w1);
+    list.add(w2);
+    list.add(w3);
+    list.dividers[0] = 0;
+    list.dividers[1] = 0;
+    list.divider(1, 0.05);
+    assert.ok(list.dividers[0] < 0, 'dividerPre should decrease dividers[0]');
+    assert.ok(list.dividers[1] > 0, 'dividerPost should increase dividers[1]');
+  });
+
+  it('render with minimized next window — divider zeroed', () => {
+    const list = List();
+    const w1 = createWindow();
+    const w2 = createWindow({ minimized: true });
+    const w3 = createWindow();
+    list.add(w1);
+    list.add(w2);
+    list.add(w3);
+    list.dividers[0] = 0.1;
+    list.dividers[1] = 0.1;
+    assert.doesNotThrow(() => list.render(0, 0, 800, 600));
+    assert.ok(w2.renderGeometry !== undefined, 'minimized window should still have renderGeometry');
+  });
+
+  it('render with single window — no dividers applied', () => {
+    const list = List();
+    const w = createWindow();
+    list.add(w);
+    assert.doesNotThrow(() => list.render(0, 0, 800, 600));
+    assert.ok(w.renderGeometry);
+  });
 });

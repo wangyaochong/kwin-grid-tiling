@@ -56,9 +56,16 @@ export function Activity() {
         const desktop = shared.workspace.desktops[i];
         const id = desktop.id;
         if (!desktops.hasOwnProperty(id)) desktops[id] = Desktop();
-        const w = Object.assign({}, window);
+        const savedDesktopId = window.desktopId;
+        const savedOutputName = window.outputName;
+        const savedListIndex = window.listIndex;
+        const savedWindowIndex = window.windowIndex;
         if (desktops[id].add(window)) {
-          remove(w);
+          window.desktopId = savedDesktopId;
+          window.outputName = savedOutputName;
+          window.listIndex = savedListIndex;
+          window.windowIndex = savedWindowIndex;
+          remove(window);
           window.desktopId = id;
           window.desktops = [desktop];
           return window;

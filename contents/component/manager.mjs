@@ -44,25 +44,7 @@ function tile(window) {
 
 function unTile(window) {
   if (tiled.hasOwnProperty(window.internalId)) {
-    // Restore opacity before disconnecting signals, since the moveResizedChanged
-    // handler won't fire after disconnect (fixes windows stuck semi-transparent
-    // when moved to a non-tiled output during drag).
-    if (window.hasOwnProperty('savedOpacity')) {
-      window.opacity = window.savedOpacity;
-      delete window.savedOpacity;
-    }
-    // Clean up drag highlight state
-    if (window._highlightTarget && !window._highlightTarget.deleted) {
-      if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
-        window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
-        delete window._highlightTarget.savedHighlightOpacity;
-      }
-      delete window._highlightTarget;
-    }
-    if (window._dragHighlightHandler) {
-      window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
-      delete window._dragHighlightHandler;
-    }
+    clearDragState(window);
 
     if (window.hasOwnProperty('init')) {
       for (const [prop, value] of Object.entries(window.init)) window[prop] = value;
@@ -73,6 +55,12 @@ function unTile(window) {
       layout.render();
     }
     delete tiled[disconnect(window).internalId];
+    delete window.outputName;
+    delete window.desktopId;
+    delete window.activityId;
+    delete window.listIndex;
+    delete window.windowIndex;
+    delete window.renderGeometry;
     floating[window.internalId] = window;
     // Watch for the window returning to a tiled output so it can be re-tiled
     watchFloatingOutput(window);
@@ -108,6 +96,24 @@ function unwatchFloatingOutput(window) {
   }
 }
 
+function clearDragState(window) {
+  if (window._dragHighlightHandler) {
+    window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
+    delete window._dragHighlightHandler;
+  }
+  if (window._highlightTarget && !window._highlightTarget.deleted) {
+    if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
+      window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
+      delete window._highlightTarget.savedHighlightOpacity;
+    }
+    delete window._highlightTarget;
+  }
+  if (window.hasOwnProperty('savedOpacity')) {
+    window.opacity = window.savedOpacity;
+    delete window.savedOpacity;
+  }
+}
+
 function addSignals(window) {
   if (config.force) {
     connect(window, 'frameGeometryChanged', () => {
@@ -125,23 +131,8 @@ function addSignals(window) {
       window._highlightTarget = null;
       const onDragMove = () => {
         if (!window.move) return;
-        // Stop drag effects if window left the tiled output
         if (!isOutputEnabled(window.output.name)) {
-          if (window.hasOwnProperty('savedOpacity')) {
-            window.opacity = window.savedOpacity;
-            delete window.savedOpacity;
-          }
-          if (window._highlightTarget && !window._highlightTarget.deleted) {
-            if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
-              window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
-              delete window._highlightTarget.savedHighlightOpacity;
-            }
-            delete window._highlightTarget;
-          }
-          if (window._dragHighlightHandler) {
-            window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
-            delete window._dragHighlightHandler;
-          }
+          clearDragState(window);
           return;
         }
         const output = getOutput(window);
@@ -167,24 +158,8 @@ function addSignals(window) {
     }
     if (window.resize) return;
 
-    if (window._dragHighlightHandler) {
-      window.frameGeometryChanged.disconnect(window._dragHighlightHandler);
-      delete window._dragHighlightHandler;
-    }
-    if (window._highlightTarget && !window._highlightTarget.deleted) {
-      if (window._highlightTarget.hasOwnProperty('savedHighlightOpacity')) {
-        window._highlightTarget.opacity = window._highlightTarget.savedHighlightOpacity;
-        delete window._highlightTarget.savedHighlightOpacity;
-      }
-      delete window._highlightTarget;
-    }
+    clearDragState(window);
 
-    if (window.hasOwnProperty('savedOpacity')) {
-      window.opacity = window.savedOpacity;
-      delete window.savedOpacity;
-    }
-
-    // Skip layout operations if window is no longer on a tiled output
     if (!isOutputEnabled(window.output.name)) return;
 
     const output = getOutput(window);
@@ -309,7 +284,12 @@ export function remove(window) {
   }
 }
 
+export function isTiled(window) {
+  return !!(window && tiled.hasOwnProperty(window.internalId));
+}
+
 export function activated(window) {
+  if (!tiled.hasOwnProperty(window.internalId)) return;
   const output = getOutput(window);
   if (output) output.render(area(window.desktops[0], window.output));
 }

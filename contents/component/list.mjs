@@ -64,8 +64,6 @@ export function List() {
     let current = 0;
     let previous = 0;
     for (let [i, window] of windows.entries()) {
-      if (window.minimized) continue;
-
       let divider = dividers[i] || 0;
       if (divider) {
         const w = windows[i + 1];
@@ -78,7 +76,12 @@ export function List() {
 
       window.renderGeometry = geometry;
 
-      // these properties are from kwin and will thus trigger additional signals, these properties must be set last to prevent the signals that are hooked into this script from triggering before the internal properties have been set
+      if (window.minimized) {
+        y += h + config.gap;
+        previous = current;
+        continue;
+      }
+
       window.noBorder = config.borderActive && window.active ? false : !config.border;
       window.frameGeometry = geometry;
 
